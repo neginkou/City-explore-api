@@ -1,55 +1,56 @@
 'use strict';
 
-let weatherData = require('./Data/weather.json');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+let weatherData = require('./Data/weather.json');
 
 const app = express();
 
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
+console.log(weatherData);
 
-const createForecastArray = (cityData) => {
-  const forecastArray = [];
+class Forecast {
+  constructor(date, description) {
+    this.date = date;
+    this.description = description;
 
-  for (const dayData of cityData.data) {
-    const date = dayData.valid_date;
-    const description = dayData.weather.description;
-
-    const forecast = { date, description };
-
-    forecastArray.push(forecast);
   }
-
-  return forecastArray;
-};
-
-for (const city of weatherData) {
-  city.forecast = createForecastArray(city);
 }
 
 app.get('/weather', (request, response) => {
   const { lat, lon, searchQuery } = request.query;
+  console.log(lat, lon, searchQuery);
 
-  if (!lat || !lon || !searchQuery) {
-    return response.status(400).json({ error: 'Latitude, longitude, and searchQuery are required.' });
-  }
+  if (lat && lon) {
 
-  const cityWeather = weatherData.find(city => {
-    return (
-      city.lat === lat.toString() &&
-      city.lon === lon.toString() &&
-      city.city_name.toLowerCase() === searchQuery.toLowerCase()
+    const cityWeather = weatherData.find((city) =>
+      city.lat === lat &&
+      city.lon === lon
     );
-  });
+    console.log('cityweather', cityWeather.data);
+    if (cityWeather) {
+      response.json(cityWeather.data.map(day => new Forecast(day.valid_date, day.weather.description)));
+    }
+    else {
+      response.status(404).json({ error: 'City not found in weather data.' });
 
-  if (!cityWeather) {
-    return response.status(404).json({ error: 'City not found in weather data.' });
+    }
+  }
+  else if (searchQuery) {
+    const cityname = searchQuery.toLowerCase();
+    const cityWeather = weatherData.find(city =>
+      city.city_name.toLowerCase() === cityname
+    );
+    if (cityWeather) {
+      response.json(cityWeather.data.map(day => new Forecast(day.valid_date, day.weather.description)));
+
+    }
   }
 
-  response.json(cityWeather);
+
 });
 
 app.get('*', (request, response) => {
