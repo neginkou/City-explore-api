@@ -1,64 +1,35 @@
 'use strict';
 
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-let weatherData = require('./Data/weather.json');
+const axios = require('axios');
+const weatherData = require('./Data/weather.json');
+const getMovie = require('./Handlers/movie');
+const handleWeather = require('./Data/Handlers/weather');
+const handlemovies = require('./Handlers/movies');
 
+
+const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
-console.log(weatherData);
-
-class Forecast {
-  constructor(date, description) {
-    this.date = date;
-    this.description = description;
-
-  }
+function HandleHomePage (request, response){
+  response.status(200).send('Access Granted')
+}
+function HandleNotfound(request, response){
+  response.status(404).send('Denied')
 }
 
-app.get('/weather', (request, response) => {
-  const { lat, lon, searchQuery } = request.query;
-  console.log(lat, lon, searchQuery);
+app.get('/', HandleHomePage);
 
-  if (lat && lon) {
+app.get("/weather", handleWeather);
 
-    const cityWeather = weatherData.find((city) =>
-      city.lat === lat &&
-      city.lon === lon
-    );
-    console.log('cityweather', cityWeather.data);
-    if (cityWeather) {
-      response.json(cityWeather.data.map(day => new Forecast(day.valid_date, day.weather.description)));
-    }
-    else {
-      response.status(404).json({ error: 'City not found in weather data.' });
-
-    }
-  }
-  else if (searchQuery) {
-    const cityname = searchQuery.toLowerCase();
-    const cityWeather = weatherData.find(city =>
-      city.city_name.toLowerCase() === cityname
-    );
-    if (cityWeather) {
-      response.json(cityWeather.data.map(day => new Forecast(day.valid_date, day.weather.description)));
-
-    }
-  }
+app.get("/movies", handlemovies);
 
 
-});
-
-app.get('*', (request, response) => {
-  response.status(404).send('Page Not Available');
-});
-
-app.use((error, request, response) => {
-  response.status(500).send(error.message);
-});
+app.get('*', HandleNotfound);
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));

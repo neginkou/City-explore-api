@@ -35,6 +35,7 @@
         }
       ],
       "semi": [2, "always"],
-      "eol-last": "error"
+      "eol-last": "error",
+      "parser": "@babel/eslint-parser"
     }
   }
