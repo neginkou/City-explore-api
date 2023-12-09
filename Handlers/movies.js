@@ -12,12 +12,14 @@ class Movie {
   }
 }
 
+let movieCache = {};
+
 async function handlemovies(request, response) {
-  const { city } = request.query;
+  const city = request.query.city;
 
   let movieURL = "https://api.themoviedb.org/3/search/movie?include_adult=false&language=en-US&page=1";
 
-  if (city) {
+  if (!movieCache[city] || (Date.new() - movieCache[city].timestamp > 50000)) {
     try {
       let movieResponse = await axios.get(movieURL, {
         params: { query: `${city}` },
@@ -27,25 +29,29 @@ async function handlemovies(request, response) {
         },
       });
 
-      if (movieResponse) {
-        const movieArray = movieResponse.data.results.sort((a, b) => b.vote_average - a.vote_average);
+      const movieArray = movieResponse.data.results.sort(
+        (a, b) => b.vote_average - a.vote_average
+      );
 
+      if (movieResponse) {
         const sortedMovies = movieArray.map((value) => {
           const name = value.original_title;
           const description = value.overview;
           const voteAvg = value.vote_average;
           return new Movie(name, description, voteAvg);
         });
-
-        response.json(sortedMovies);
-      } else {
-        console.log("No movies found");
+        movieCache[city] = {};
+        movieCache[city] = sortedMovies;
+        movieCache[city].timestamp = Date.now();
       }
     } catch (error) {
-      console.error("Error making TMDb API request:", error.message);
-      response.status(500).json({ error: "Internal Server Error" });
+      let errorMessage = error.message;
+      console.error(errorMessage);
     }
+  } else {
+    console.log(`We have ${city} at home`);
   }
+  response.json(movieCache[city]);
 }
 
 module.exports = handlemovies;
